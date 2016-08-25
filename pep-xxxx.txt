@@ -1,0 +1,102 @@
+PEP: xxxx
+Title: Simplify class extension
+Version: $Revision$
+Last-Modified: $Date$
+Author: Pim Schellart, Nate Lust
+Status: 
+Type: 
+Content-Type: text/x-rst
+Created: 24-Aug-2016
+Python-Version: 3.6
+Post-History: 24-Aug-2016
+
+
+Abstract
+========
+
+This PEP proposes the continue class syntax for extending existing classes.
+
+
+Rationale
+=========
+
+Extending existing classes with new members currently requires the members
+to be defined outside of class scope and then assigned to the class, as in::
+
+  def foo(self):
+    pass
+  A.foo = foo
+  del foo
+
+This pattern frequently occurs when extending classes from extension module
+written in other languages.
+
+This syntax is however cumbersome and error prone for the following reasons:
+
+  1. The name of the new member might clash with an existing name at module
+     scope.
+  2. The developer might forget the assignment.
+  3. The developer might forget to delete the temporary, leaving it at
+     module scope where it is meaningless.
+
+Alternatives are to use inheritance or lambda. Inheritance is not an option
+for use with Python extension modules (written in e.g. C / C++). The reason
+being that if class B inherits from class A in say C++ one cannot subclass
+A in Python without breaking the inheritance.
+
+Using lambda is not equivalent because it only allows for positional
+arguments.
+
+This proposal adds the keyword combination "continue class" which instructs
+the interpreter to add members to an existing class.
+
+By combining existing keywords it avoids name clashes. A precedent for this
+exists in "is not".
+
+
+Semantics
+=========
+
+The following two snippets are semantically identical::
+
+  continue class A:
+    def foo(self):
+      pass
+  
+  def foo(self):
+    pass
+  A.foo = foo
+  del foo
+    
+
+Implementation
+==============
+
+Adapting Python's grammar to support the continue class keyword combination
+requires...
+
+
+Acceptance
+==========
+
+
+
+References
+==========
+
+
+Copyright
+=========
+
+This document has been placed in the public domain.
+
+
+
+..
+   Local Variables:
+   mode: indented-text
+   indent-tabs-mode: nil
+   sentence-end-double-space: t
+   fill-column: 70
+   coding: utf-8
+   End:
