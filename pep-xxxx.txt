@@ -69,6 +69,16 @@ The following two snippets are semantically identical::
   del foo
     
 
+Alternatives
+============
+
+An alternative could be to allow a function definition to include a class
+specifier as in::
+
+  def A.foo(self):
+    pass
+
+
 Implementation
 ==============
 
