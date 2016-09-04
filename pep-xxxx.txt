@@ -39,13 +39,21 @@ This syntax is however cumbersome and error prone for the following reasons:
   3. The developer might forget to delete the temporary, leaving it at
      module scope where it is meaningless.
 
-Alternatives are to use inheritance or lambda. Inheritance is not an option
-for use with Python extension modules (written in e.g. C / C++). The reason
-being that if class B inherits from class A in say C++ one cannot subclass
-A in Python without breaking the inheritance.
+Alternatives are to use inheritance, lambda or a class decorator.
+Inheritance is not a good option for use with Python extension modules
+(written in e.g. C / C++). The reason is that if in the other language
+(say C++) the inheritance relation is A<-B, and this is exposed to Python,
+we can't add functionality to A in Python by subclassing A<-A' without also
+introducing B' that inherits from B and A'. Thus one change propagates all
+the way up the inheritance chain.
 
 Using lambda is not equivalent because it only allows for positional
 arguments.
+
+A class decorator (say @continue_class(MyClass) that takes methods and
+attributes from the class and attaches them to the wrapped type) works,
+but is cumbersome and requires a new class name to be introduced for each
+extended type. Thus suffering from the same problems numbered (1) and (2) above.
 
 This proposal adds the keyword combination "continue class" which instructs
 the interpreter to add members to an existing class.
@@ -53,6 +61,8 @@ the interpreter to add members to an existing class.
 By combining existing keywords it avoids name clashes. A precedent for this
 exists in "is not".
 
+Another big advantage of the "continue class" syntax is discoverability, by
+humans and tools, of extended classes.
 
 Semantics
 =========
