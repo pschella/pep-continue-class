@@ -53,13 +53,13 @@ inheritance chain.  Inheritance with pure Python classes exhibit the same issue.
 It might be tempting to avoid (1) and (2) by subclassing, reusing the name of
 the base class. However this approach suffers from two issues.  The first issue,
 like above, has to do with the inheritance relation.  If A subclasses A and B
-subclasses A (A<-A<-B) calls to super in B may have unexpected behavior
+subclasses A (A<-A<-B), then calls to super in B may have unexpected behavior
 (anything using the method resolution order may exhibit the same
 unexpectedness).  The second issue arises when class B inherits from class A
 before it is extended (A<-B) and then class A is extended though inheritance
 (A<-A).  Class A will now have new methods and data members which are not
 present in B, as it is a subclass only of the original A.  This would be
-confusing to any one examining B as it would be apparently missing members of
+confusing to anyone examining B as it would be apparently missing members of
 it's parent.
 
 Adding attributes to a class using lambda is not equivalent because it only
@@ -126,40 +126,13 @@ Implementation
 Adapting Python's grammar to support the continue class keyword combination
 requires modifying the grammar file to parse for the new keyword combination.
 Additional changes to Python.asdl, ast.c, compile.c, symtable.c will be required
-to process the parsed syntax to byte code.  A mercurial diff against Python 3.5
-for a fully functional reference implementation of continue class can be found
-at XXX.
+to process the parsed syntax to byte code.
 
-The reference implementation parses the continue class line for the name of the
+A reference implementation parses the continue class line for the name of the
 class to be modified and loads it.  Next the body of the block is compiled into
 a code object scoped by the name of the class.  The class and the code are used
 as arguments to a new built-in module, called __continue_class__.  This function
 evaluates the code block, passing the results to setattr on the supplied class.
-
-A test case for a patched interpreter is as follows:
-
-.. code:: Python
-  # Define a class with a constructor which takes a message
-  class Bar:
-    def __init__(self, message):
-      self.message = message
-
-  # Continue the class, adding a function to print the message
-  continue class Bar:
-    def second(self):
-      print(self.message)
-
-  # Create an instance of the class
-  inst = Bar('Hello World!')
-
-  # Verify that the new function was added
-  inst.second()
-
-  # Show that the continue keyword continues to function as expected
-  for i in range(5):
-    if i == 1:
-      continue
-    print(i)
 
 
 Acceptance
