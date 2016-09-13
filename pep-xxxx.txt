@@ -21,71 +21,71 @@ readable way to continue a definition for classes which are already defined.
 Rationale
 =========
 
-Extending existing classes with new members currently requires the members
-to be defined outside of class scope and then assigned to the class, as in::
+Extending existing classes with new members currently requires the members to be
+defined outside of class scope and then assigned to the class, as in::
 
   def foo(self):
-    pass
+      pass
   A.foo = foo
   del foo
 
-This pattern frequently occurs when extending classes from extension module
-written in other languages, but is also not uncommon in python code.
+This pattern frequently occurs when extending classes from extension modules
+written in other languages, but is also not uncommon in pure Python code.
 
 This syntax is however cumbersome and error prone for the following reasons:
 
   1. The name of the new member might clash with an existing name at module
      scope.
   2. The developer might forget the assignment.
-  3. The developer might forget to delete the temporary, leaving it at
-     module scope where it is meaningless (or worse non functional as a
-     stand alone function).
+  3. The developer might forget to delete the temporary, leaving it at module
+     scope where it is meaningless (or worse non functional as a stand alone
+     function).
 
-Alternatives are to use inheritance, lambda or a class decorator.
-Inheritance is not a good option for use with Python extension modules
-(written in e.g. C / C++). The reason is that if in the other language
-(say C++) the inheritance relation is A<-B, and this is exposed to Python,
-we can't add functionality to A in Python by subclassing A<-A' without also
-introducing B' that inherits from B and A'. Thus one change propagates all
-the way up the inheritance chain. Inheritance with pure python classes exhibit
-the same issue.
+Alternatives are to use inheritance, lambda or a decorator.
 
-It might be tempting to try subclassing directly repeating the same name relying
-on closures to keep track of the first class. However this approach suffers from
-two issues. The first issue, like above, has to do with the inheritance
-relation. If A subclasses A and B subclasses A (A<-A<-B) calls to super in B may
-have unexpected behavior (anything using the method resolution order may
-exhibit the same unexpectedness). The second issue arises when class B inherits
-from class A (A<-B) and then class A is extended though inheritance (A<-A).
-Class A will now have new methods and data members which are not present in B,
-as it is a subclass only of the original A. This would be confusing to any one
-examining B as it would be apparently missing members of it's parent.
+Inheritance is not a good option for use with Python extension modules (written
+in for instance C / C++).  The reason is that if in the other language the
+inheritance relation is A<-B, and this is exposed to Python, we can't add
+functionality to A in Python by subclassing A<-A' without also introducing B'
+that inherits from B and A'.  Thus one change propagates all the way down the
+inheritance chain.  Inheritance with pure Python classes exhibit the same issue.
+
+It might be tempting to avoid (1) and (2) by subclassing, reusing the name of
+the base class. However this approach suffers from two issues.  The first issue,
+like above, has to do with the inheritance relation.  If A subclasses A and B
+subclasses A (A<-A<-B) calls to super in B may have unexpected behavior
+(anything using the method resolution order may exhibit the same
+unexpectedness).  The second issue arises when class B inherits from class A
+before it is extended (A<-B) and then class A is extended though inheritance
+(A<-A).  Class A will now have new methods and data members which are not
+present in B, as it is a subclass only of the original A.  This would be
+confusing to any one examining B as it would be apparently missing members of
+it's parent.
 
 Adding attributes to a class using lambda is not equivalent because it only
-allows for positional arguments and is limited to fairly simple functional
-behavior.
+allows for expressions and not statements.
 
-A class decorator (say @continue_class(MyClass) that takes methods and
-attributes from the class and attaches them to the wrapped type) works,
-but is cumbersome and requires a new class name to be introduced for each
-extended type. Thus suffering from the same problems numbered (1) and (2) above.
+A class decorator (say "@continue_class(A)" that takes methods and attributes
+from the class and attaches them to the wrapped type) works, but is cumbersome
+and requires a new class name to be introduced for each extended type.  Thus
+suffering from the same problems numbered (1) and (2) above.
 
-A function decorator could extend a class, but also requires defining a new
-name and suffers from problems (1) and (2).
+A function decorator could extend a class, but also requires defining a new name
+and suffers from problems (1) and (2).
 
-This proposal adds the keyword combination "continue class" which instructs
-the interpreter to add members to an existing class. This syntax requires no new
-keywords and allows all existing python code to continue to function with no
+This proposal adds the keyword combination "continue class" which instructs the
+interpreter to add members to an existing class.  This syntax requires no new
+keywords and allows all existing Python code to continue to function with no
 modification.
 
-By combining existing keywords it avoids name clashes. A precedent for this
-exists in "is not".
+By combining existing keywords it avoids name clashes.  Precedents for this
+exists in "is not" and "yield from".
 
-Another big advantage of the "continue class" syntax is discoverability. For
+Another big advantage of the "continue class" syntax is discoverability.  For
 humans, the meaning of the syntax is evident, the class will be continued with
-the following block. Automated tools will also benefit from this syntax as
+the following block.  Automated tools will also benefit from this syntax as
 parsing a file to discover the complete definition of a class will be easier
-than trying to detect 'monkey patching' or class extension though inheritance.
+than trying to detect 'monkey patching'.
 
 
 Semantics
@@ -94,13 +94,21 @@ Semantics
 The following two snippets are semantically identical::
 
   continue class A:
-    def foo(self):
-      pass
+      x = 5
+      def foo(self):
+          pass
+      def bar(self):
+          pass
 
   def foo(self):
-    pass
+      pass
+  def bar(self):
+      pass
+  A.x = 5
   A.foo = foo
+  A.bar = bar
   del foo
+  del bar
 
 
 Alternatives
@@ -118,19 +126,19 @@ Implementation
 Adapting Python's grammar to support the continue class keyword combination
 requires modifying the grammar file to parse for the new keyword combination.
 Additional changes to Python.asdl, ast.c, compile.c, symtable.c will be required
-to process the parsed syntax to byte code. A mercurial diff against python 3.5
+to process the parsed syntax to byte code.  A mercurial diff against Python 3.5
 for a fully functional reference implementation of continue class can be found
 at XXX.
 
 The reference implementation parses the continue class line for the name of the
-class to be modified and loads it. Next the body of the block is compiled into
-a code object scoped by the name of the class. The class and the code are used
-as arguments to a new built-in module, called __continue_class__. This function
+class to be modified and loads it.  Next the body of the block is compiled into
+a code object scoped by the name of the class.  The class and the code are used
+as arguments to a new built-in module, called __continue_class__.  This function
 evaluates the code block, passing the results to setattr on the supplied class.
 
 A test case for a patched interpreter is as follows:
 
-.. code:: python
+.. code:: Python
   # Define a class with a constructor which takes a message
   class Bar:
     def __init__(self, message):
